@@ -17,6 +17,8 @@
       --border: #e2e8f0;
       --danger: #ef4444;
       --danger-light: #fef2f2;
+      --green: #059669;
+      --green-dark: #047857;
 
       --st-wait-pay-bg: #f1f5f9; --st-wait-pay-txt: #475569;
       --st-paid-bg: #e0f2fe; --st-paid-txt: #0369a1;
@@ -81,6 +83,15 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+    }
+
+    .page-section {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .page-section.active {
+      display: flex;
     }
 
     .date-card {
@@ -357,6 +368,82 @@
       cursor: pointer;
     }
 
+    /* Dashboard UI Design */
+    .dash-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .dash-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dash-grid-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .dash-card-item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: #fff;
+    }
+    .dash-card-item.highlight {
+      background: #059669;
+      border-color: #059669;
+      color: #fff;
+    }
+    .dash-card-item.highlight span { color: rgba(255,255,255,0.9); }
+    .dash-card-item.highlight strong { color: #fff; }
+
+    .dash-card-item span {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .dash-card-item strong {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .btn-dash-green {
+      background: #10b981;
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-dash-outline {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
     .fab {
       position: fixed;
       bottom: 75px;
@@ -485,59 +572,120 @@
   </header>
 
   <div class="container">
-    <div class="date-card">
-      <div class="date-card-top">
-        <span>เลือกดูตามวันที่:</span>
-        <span class="badge-today" onclick="setFilterToday()">วันนี้</span>
-      </div>
-      <div class="date-card-bottom">
-        <div class="date-select-wrap">
-          <input type="date" id="datePicker" class="date-input" onchange="filterByDate()">
+
+    <div id="page-orders" class="page-section active">
+      <div class="date-card">
+        <div class="date-card-top">
+          <span>เลือกดูตามวันที่:</span>
+          <span class="badge-today" onclick="setFilterToday()">วันนี้</span>
         </div>
-        <button class="btn-export-csv" onclick="exportToCSV()">📤 ส่งออกสรุปยอด (CSV)</button>
+        <div class="date-card-bottom">
+          <div class="date-select-wrap">
+            <input type="date" id="datePicker" class="date-input" onchange="filterByDate()">
+          </div>
+          <button class="btn-export-csv" onclick="exportToCSV()">📤 ส่งออกสรุปยอด (CSV)</button>
+        </div>
+      </div>
+
+      <div class="overview-grid">
+        <div class="banner-sales">
+          <span>ยอดขายวันที่เลือก</span>
+          <strong id="bannerSales">฿0</strong>
+        </div>
+        <div class="banner-count">
+          <span>จำนวนออเดอร์</span>
+          <strong><span id="bannerCount">0</span> รายการ</strong>
+        </div>
+      </div>
+
+      <div class="filter-tabs">
+        <button class="tab-pill active" onclick="setStatusFilter('all', this)">ทั้งหมด</button>
+        <button class="tab-pill" onclick="setStatusFilter('รอชำระเงิน', this)">รอชำระเงิน</button>
+        <button class="tab-pill" onclick="setStatusFilter('ชำระแล้ว', this)">ชำระแล้ว</button>
+        <button class="tab-pill" onclick="setStatusFilter('รอจัดส่ง', this)">รอจัดส่ง</button>
+        <button class="tab-pill" onclick="setStatusFilter('แพ็คแล้ว', this)">แพ็คแล้ว</button>
+        <button class="tab-pill" onclick="setStatusFilter('จัดส่งแล้ว', this)">จัดส่งแล้ว</button>
+      </div>
+
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="ค้นหาชื่อลูกค้า, เบอร์โทร, เลขออเดอร์..." oninput="handleSearch()">
+      </div>
+
+      <div id="ordersContainer" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+
+    <div id="page-products" class="page-section">
+      <div class="dash-box" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+        <h3>📦 สินค้าและราคา</h3>
+        <p style="margin-top: 8px; font-size: 0.85rem;">จัดการรายการสินค้าและต้นทุนมาตรฐาน</p>
       </div>
     </div>
 
-    <div class="overview-grid">
-      <div class="banner-sales">
-        <span>ยอดขายวันที่เลือก</span>
-        <strong id="bannerSales">฿0</strong>
+    <div id="page-dashboard" class="page-section">
+      <div class="dash-box">
+        <div class="dash-title">
+          <span>📊</span> แดชบอร์ดสรุปยอดขาย
+        </div>
+
+        <div>
+          <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px;">เลือกดูสรุปตามวันที่:</div>
+          <div style="display: flex; gap: 8px;">
+            <input type="date" id="summaryDatePicker" class="date-input" onchange="renderDashboardSummary()">
+            <button class="badge-today" style="padding: 0 14px; border: 1px solid var(--border);" onclick="setSummaryToday()">วันนี้</button>
+          </div>
+        </div>
+
+        <div class="dash-grid-4">
+          <div class="dash-card-item highlight">
+            <span>ยอดรวมทั้งสิ้น</span>
+            <strong id="dashTotalGrand">฿0</strong>
+          </div>
+          <div class="dash-card-item">
+            <span>ค่าสินค้าล้วน</span>
+            <strong id="dashTotalItems">฿0</strong>
+          </div>
+          <div class="dash-card-item">
+            <span>ค่าจัดส่งรวม</span>
+            <strong id="dashTotalShipping">฿0</strong>
+          </div>
+          <div class="dash-card-item">
+            <span>ออเดอร์ทั้งหมด</span>
+            <strong id="dashTotalCount">0 ออเดอร์</strong>
+          </div>
+          <div class="dash-card-item">
+            <span>ต้นทุนสินค้ารวม</span>
+            <strong id="dashTotalCost" style="color: #ef4444;">฿0</strong>
+          </div>
+          <div class="dash-card-item">
+            <span>กำไรสุทธิ</span>
+            <strong id="dashTotalProfit" style="color: #059669;">฿0</strong>
+          </div>
+        </div>
+
+        <button class="btn-dash-green" onclick="exportToCSV(true)">
+          📑 ส่งออกรายงานประจำวัน (CSV Excel)
+        </button>
+        <button class="btn-dash-outline" onclick="exportToCSV(false)">
+          💾 สำรองข้อมูลออเดอร์ทั้งหมด (CSV)
+        </button>
       </div>
-      <div class="banner-count">
-        <span>จำนวนออเดอร์</span>
-        <strong><span id="bannerCount">0</span> รายการ</strong>
-      </div>
     </div>
 
-    <div class="filter-tabs">
-      <button class="tab-pill active" onclick="setStatusFilter('all', this)">ทั้งหมด</button>
-      <button class="tab-pill" onclick="setStatusFilter('รอชำระเงิน', this)">รอชำระเงิน</button>
-      <button class="tab-pill" onclick="setStatusFilter('ชำระแล้ว', this)">ชำระแล้ว</button>
-      <button class="tab-pill" onclick="setStatusFilter('รอจัดส่ง', this)">รอจัดส่ง</button>
-      <button class="tab-pill" onclick="setStatusFilter('แพ็คแล้ว', this)">แพ็คแล้ว</button>
-      <button class="tab-pill" onclick="setStatusFilter('จัดส่งแล้ว', this)">จัดส่งแล้ว</button>
-    </div>
-
-    <div class="search-box">
-      <span>🔍</span>
-      <input type="text" id="searchInput" class="search-input" placeholder="ค้นหาชื่อลูกค้า, เบอร์โทร, เลขออเดอร์..." oninput="handleSearch()">
-    </div>
-
-    <div id="ordersContainer" style="display: flex; flex-direction: column; gap: 12px;"></div>
   </div>
 
-  <button class="fab" onclick="openAddModal()">+</button>
+  <button class="fab" id="fabBtn" onclick="openAddModal()">+</button>
 
   <nav class="bottom-nav">
-    <button class="nav-item active" onclick="switchPage('orders', this)">
+    <button class="nav-item active" onclick="switchTab('page-orders', this)">
       <span>📋</span>
       ออเดอร์
     </button>
-    <button class="nav-item" onclick="switchPage('products', this)">
+    <button class="nav-item" onclick="switchTab('page-products', this)">
       <span>📦</span>
       สินค้า/ราคา
     </button>
-    <button class="nav-item" onclick="switchPage('dashboard', this)">
+    <button class="nav-item" onclick="switchTab('page-dashboard', this)">
       <span>📊</span>
       สรุปยอด
     </button>
@@ -588,6 +736,7 @@
               <option value="รอจัดส่ง">รอจัดส่ง</option>
               <option value="แพ็คแล้ว">แพ็คแล้ว</option>
               <option value="จัดส่งแล้ว">จัดส่งแล้ว</option>
+              <option value="ยกเลิก">ยกเลิก</option>
             </select>
           </div>
         </div>
@@ -644,10 +793,12 @@
     let searchQuery = '';
 
     document.getElementById('datePicker').value = selectedDate;
+    document.getElementById('summaryDatePicker').value = selectedDate;
 
     function saveState() {
       localStorage.setItem('shop_orders_data', JSON.stringify(orders));
       renderOrders();
+      renderDashboardSummary();
     }
 
     function getBadgeStyle(status) {
@@ -657,7 +808,7 @@
         case 'รอจัดส่ง': return { bg: 'var(--st-wait-ship-bg)', txt: 'var(--st-wait-ship-txt)' };
         case 'แพ็คแล้ว': return { bg: 'var(--st-packed-bg)', txt: 'var(--st-packed-txt)', textLabel: 'แพ็คของแล้ว' };
         case 'จัดส่งแล้ว': return { bg: 'var(--st-shipped-bg)', txt: 'var(--st-shipped-txt)' };
-        default: return { bg: '#f1f5f9', txt: '#475569' };
+        default: return { bg: '#fee2e2', txt: '#991b1b', textLabel: status };
       }
     }
 
@@ -675,7 +826,7 @@
         return matchDate && matchStatus && matchSearch;
       });
 
-      const dateOrders = orders.filter(o => !selectedDate || o.date === selectedDate);
+      const dateOrders = orders.filter(o => (!selectedDate || o.date === selectedDate) && o.status !== 'ยกเลิก');
       const totalSales = dateOrders.reduce((sum, o) => {
         const itemSum = o.items.reduce((s, it) => s + Number(it.price), 0);
         return sum + itemSum + Number(o.shipping);
@@ -745,6 +896,51 @@
       });
     }
 
+    // ฟังก์ชันคำนวณหน้า Dashboard สรุปยอด
+    function renderDashboardSummary() {
+      const dateVal = document.getElementById('summaryDatePicker').value;
+      const targetOrders = orders.filter(o => o.date === dateVal && o.status !== 'ยกเลิก');
+
+      let itemsSum = 0;
+      let shippingSum = 0;
+      let costSum = 0;
+
+      targetOrders.forEach(o => {
+        o.items.forEach(it => {
+          itemsSum += Number(it.price || 0);
+          costSum += Number(it.cost || 0);
+        });
+        shippingSum += Number(o.shipping || 0);
+      });
+
+      const grandTotal = itemsSum + shippingSum;
+      const profit = itemsSum - costSum; // กำไรมาจากยอดขายสินค้าล้วน - ต้นทุนสินค้า
+
+      document.getElementById('dashTotalGrand').innerText = `฿${grandTotal.toLocaleString()}`;
+      document.getElementById('dashTotalItems').innerText = `฿${itemsSum.toLocaleString()}`;
+      document.getElementById('dashTotalShipping').innerText = `฿${shippingSum.toLocaleString()}`;
+      document.getElementById('dashTotalCount').innerText = `${targetOrders.length} ออเดอร์`;
+      document.getElementById('dashTotalCost').innerText = `฿${costSum.toLocaleString()}`;
+      document.getElementById('dashTotalProfit').innerText = `฿${profit.toLocaleString()}`;
+    }
+
+    function setSummaryToday() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('summaryDatePicker').value = today;
+      renderDashboardSummary();
+    }
+
+    function switchTab(pageId, btn) {
+      document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(pageId).classList.add('active');
+      btn.classList.add('active');
+
+      document.getElementById('fabBtn').style.display = (pageId === 'page-orders') ? 'flex' : 'none';
+      if (pageId === 'page-dashboard') renderDashboardSummary();
+    }
+
     function filterByDate() {
       selectedDate = document.getElementById('datePicker').value;
       renderOrders();
@@ -791,10 +987,10 @@
       row.className = 'grid-2 item-row-input';
       row.style.marginBottom = '4px';
       row.innerHTML = `
-        <input type="text" class="form-control item-name" placeholder="ชื่อสินค้า (เช่น ปลา (x1))" value="${name}" required>
+        <input type="text" class="form-control item-name" placeholder="ชื่อสินค้า" value="${name}" required>
         <div style="display:flex; gap:4px;">
-          <input type="number" class="form-control item-price" placeholder="ราคา" value="${price}" required style="flex:1;">
-          <input type="number" class="form-control item-cost" placeholder="ทุน" value="${cost}" style="flex:1;">
+          <input type="number" class="form-control item-price" placeholder="ราคาขาย" value="${price}" required style="flex:1;">
+          <input type="number" class="form-control item-cost" placeholder="ต้นทุน" value="${cost}" style="flex:1;">
           <button type="button" onclick="this.parentElement.parentElement.remove()" style="background:#fee2e2; border:none; color:red; border-radius:6px; padding:0 6px;">✕</button>
         </div>
       `;
@@ -887,36 +1083,33 @@
       closeModal();
     }
 
-    function exportToCSV() {
-      if (orders.length === 0) return alert('ไม่มีข้อมูลออเดอร์');
-      let csv = "\uFEFFเลขออเดอร์,วันที่,เวลา,ลูกค้า,เบอร์โทร,ที่อยู่,รายการสินค้า,ค่าจัดส่ง,ยอดรวม,สถานะ,หมายเหตุ\n";
+    function exportToCSV(dailyOnly = false) {
+      const targetDate = document.getElementById('summaryDatePicker').value;
+      const exportList = dailyOnly ? orders.filter(o => o.date === targetDate) : orders;
+
+      if (exportList.length === 0) return alert('ไม่มีข้อมูลออเดอร์');
+
+      let csv = "\uFEFFเลขออเดอร์,วันที่,เวลา,ลูกค้า,เบอร์โทร,ที่อยู่,รายการสินค้า,ยอดสินค้าล้วน,ค่าจัดส่ง,ยอดรวมทั้งสิ้น,ต้นทุน,กำไร,สถานะ,หมายเหตุ\n";
       
-      orders.forEach(o => {
+      exportList.forEach(o => {
         const itemDetails = o.items.map(it => `${it.name} (฿${it.price})`).join(' | ');
-        const total = o.items.reduce((s, it) => s + Number(it.price), 0) + Number(o.shipping);
-        csv += `"${o.id}","${o.date}","${o.time || ''}","${o.customer}","${o.tel}","${o.address}","${itemDetails}",${o.shipping},${total},"${o.status}","${o.note}"\n`;
+        const itemTotal = o.items.reduce((s, it) => s + Number(it.price), 0);
+        const costTotal = o.items.reduce((s, it) => s + Number(it.cost || 0), 0);
+        const grandTotal = itemTotal + Number(o.shipping);
+        const profit = itemTotal - costTotal;
+
+        csv += `"${o.id}","${o.date}","${o.time || ''}","${o.customer}","${o.tel}","${o.address}","${itemDetails}",${itemTotal},${o.shipping},${grandTotal},${costTotal},${profit},"${o.status}","${o.note}"\n`;
       });
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `Orders_Summary_${selectedDate || 'all'}.csv`;
+      a.download = `Orders_Report_${dailyOnly ? targetDate : 'All'}.csv`;
       a.click();
     }
 
-    function switchPage(page, btn) {
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-      btn.classList.add('active');
-      if (page === 'dashboard') {
-        const valid = orders.filter(o => o.status !== 'ยกเลิก');
-        const rev = valid.reduce((s, o) => s + o.items.reduce((si, i) => si + Number(i.price), 0) + Number(o.shipping), 0);
-        const cost = valid.reduce((s, o) => s + o.items.reduce((si, i) => si + Number(i.cost || 0), 0), 0);
-        const ship = valid.reduce((s, o) => s + Number(o.shipping), 0);
-        alert(`📊 สรุปยอดรวม:\n- ยอดขายรวม: ฿${rev.toLocaleString()}\n- ต้นทุนสินค้า: ฿${cost.toLocaleString()}\n- ค่าส่งรวม: ฿${ship.toLocaleString()}\n- กำไรสุทธิ: ฿${(rev - cost - ship).toLocaleString()}`);
-      }
-    }
-
     renderOrders();
+    renderDashboardSummary();
   </script>
 </body>
 </html>
