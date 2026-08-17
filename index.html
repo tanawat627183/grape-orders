@@ -18,7 +18,6 @@
       --danger: #ef4444;
       --danger-light: #fef2f2;
       --green: #059669;
-      --green-dark: #047857;
 
       --st-wait-pay-bg: #f1f5f9; --st-wait-pay-txt: #475569;
       --st-paid-bg: #e0f2fe; --st-paid-txt: #0369a1;
@@ -361,7 +360,7 @@
       cursor: pointer;
     }
 
-    /* Dashboard UI Design */
+    /* Dashboard UI */
     .dash-box {
       background: #fff;
       border: 1px solid var(--border);
@@ -745,15 +744,14 @@
   </div>
 
   <script>
-    // ดึงวันที่ปัจจุบันตามเวลาประเทศไทย (Asia/Bangkok) อย่างแม่นยำ
+    // ดึงวันที่ปัจจุบันประเทศไทย YYYY-MM-DD
     function getSystemTodayString() {
-      const parts = new Intl.DateTimeFormat('en-CA', {
+      return new Intl.DateTimeFormat('en-CA', {
         timeZone: 'Asia/Bangkok',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
       }).format(new Date());
-      return parts; // ได้รูปแบบ YYYY-MM-DD แน่นอน
     }
 
     function refreshHeaderDate() {
@@ -770,9 +768,13 @@
     let todayDate = getSystemTodayString();
     refreshHeaderDate();
 
-    // ดึงข้อมูลออเดอร์จาก LocalStorage ถ้าไม่มีให้สร้างรายการของวันนี้
-    let orders = JSON.parse(localStorage.getItem('shop_orders_data_v2'));
-    if (!orders || orders.length === 0) {
+    // จัดเก็บข้อมูลแบบปลอดภัย (ถ้าเคยเปิดใช้งานแล้วจะไม่ดึง Mock Data กลับมาทับอีก)
+    const DB_KEY = 'grape_shop_orders_store';
+    let rawStored = localStorage.getItem(DB_KEY);
+    let orders = [];
+
+    if (rawStored === null) {
+      // เปิดใช้ครั้งแรกสุด มีตัวอย่างให้ 2 รายการ
       orders = [
         {
           id: "OD-99356",
@@ -807,19 +809,21 @@
           note: "ลูกค้าประจำ"
         }
       ];
-      localStorage.setItem('shop_orders_data_v2', JSON.stringify(orders));
+      localStorage.setItem(DB_KEY, JSON.stringify(orders));
+    } else {
+      // ดึงข้อมูลจริงจากเครื่อง แม้มี 0 รายการก็ไม่ดึงตัวอย่างกลับมา
+      orders = JSON.parse(rawStored) || [];
     }
 
     let selectedDate = todayDate;
     let currentStatusFilter = 'all';
     let searchQuery = '';
 
-    // ตั้งค่าเริ่มต้นให้กับช่องเลือกวันที่
     document.getElementById('datePicker').value = todayDate;
     document.getElementById('summaryDatePicker').value = todayDate;
 
     function saveState() {
-      localStorage.setItem('shop_orders_data_v2', JSON.stringify(orders));
+      localStorage.setItem(DB_KEY, JSON.stringify(orders));
       renderOrders();
       renderDashboardSummary();
     }
@@ -843,31 +847,31 @@
         const matchDate = !selectedDate || o.date === selectedDate;
         const matchStatus = currentStatusFilter === 'all' || o.status === currentStatusFilter;
         const q = searchQuery.toLowerCase();
-        const matchSearch = o.customer.toLowerCase().includes(q) || 
-                            o.id.toLowerCase().includes(q) || 
+        const matchSearch = (o.customer && o.customer.toLowerCase().includes(q)) || 
+                            (o.id && o.id.toLowerCase().includes(q)) || 
                             (o.tel && o.tel.includes(q));
         return matchDate && matchStatus && matchSearch;
       });
 
       const dateOrders = orders.filter(o => (!selectedDate || o.date === selectedDate) && o.status !== 'ยกเลิก');
       const totalSales = dateOrders.reduce((sum, o) => {
-        const itemSum = o.items.reduce((s, it) => s + Number(it.price), 0);
-        return sum + itemSum + Number(o.shipping);
+        const itemSum = o.items.reduce((s, it) => s + Number(it.price || 0), 0);
+        return sum + itemSum + Number(o.shipping || 0);
       }, 0);
 
       document.getElementById('bannerSales').innerText = `฿${totalSales.toLocaleString()}`;
       document.getElementById('bannerCount').innerText = dateOrders.length;
 
       if (filtered.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding:30px; color:#94a3b8; font-size:0.85rem;">ไม่พบรายการออเดอร์ของวันที่เลือก</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:35px; color:#94a3b8; font-size:0.85rem;">ไม่พบรายการออเดอร์ของวันที่เลือก</div>`;
         return;
       }
 
       filtered.forEach((o) => {
         const index = orders.findIndex(item => item.id === o.id);
         const badge = getBadgeStyle(o.status);
-        const itemTotal = o.items.reduce((s, it) => s + Number(it.price), 0);
-        const grandTotal = itemTotal + Number(o.shipping);
+        const itemTotal = o.items.reduce((s, it) => s + Number(it.price || 0), 0);
+        const grandTotal = itemTotal + Number(o.shipping || 0);
 
         const card = document.createElement('div');
         card.className = 'order-card';
@@ -907,7 +911,7 @@
             <span class="card-total-val">฿${grandTotal.toLocaleString()}</span>
           </div>
 
-          ${o.note ? `<div class="note-text">💬 หมายเหตุ: ${o.note}</div>` : ''}
+          ${o.note ? `<div style="font-size:0.75rem; color:var(--text-muted);">💬 หมายเหตุ: ${o.note}</div>` : ''}
 
           <div class="card-actions">
             <button class="btn-action-edit" onclick="openEditModal(${index})">✏️ แก้ไข</button>
@@ -998,7 +1002,7 @@
     function deleteOrder(index) {
       if (confirm(`ยืนยันการลบออเดอร์ ${orders[index].id} ?`)) {
         orders.splice(index, 1);
-        saveState();
+        saveState(); // บันทึกสถานะใหม่ลงเครื่องทันที
       }
     }
 
@@ -1114,9 +1118,9 @@
       
       exportList.forEach(o => {
         const itemDetails = o.items.map(it => `${it.name} (฿${it.price})`).join(' | ');
-        const itemTotal = o.items.reduce((s, it) => s + Number(it.price), 0);
+        const itemTotal = o.items.reduce((s, it) => s + Number(it.price || 0), 0);
         const costTotal = o.items.reduce((s, it) => s + Number(it.cost || 0), 0);
-        const grandTotal = itemTotal + Number(o.shipping);
+        const grandTotal = itemTotal + Number(o.shipping || 0);
         const profit = itemTotal - costTotal;
 
         csv += `"${o.id}","${o.date}","${o.time || ''}","${o.customer}","${o.tel}","${o.address}","${itemDetails}",${itemTotal},${o.shipping},${grandTotal},${costTotal},${profit},"${o.status}","${o.note}"\n`;
@@ -1129,7 +1133,6 @@
       a.click();
     }
 
-    // เริ่มต้นแสดงผล
     renderOrders();
     renderDashboardSummary();
   </script>
