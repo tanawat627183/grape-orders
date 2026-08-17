@@ -111,12 +111,13 @@
       color: var(--text-muted);
     }
     .badge-today {
-      background: #f1f5f9;
+      background: #eff6ff;
       color: var(--primary);
-      padding: 2px 8px;
+      padding: 3px 10px;
       border-radius: 10px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
+      border: 1px solid #bfdbfe;
     }
     .date-card-bottom {
       display: flex;
@@ -314,14 +315,6 @@
     }
     .card-total-label { font-size: 0.9rem; font-weight: 700; color: var(--text); }
     .card-total-val { font-size: 1.15rem; font-weight: 700; color: var(--primary-dark); }
-
-    .note-text {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
 
     .card-actions {
       display: flex;
@@ -632,7 +625,7 @@
           <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px;">เลือกดูสรุปตามวันที่:</div>
           <div style="display: flex; gap: 8px;">
             <input type="date" id="summaryDatePicker" class="date-input" onchange="renderDashboardSummary()">
-            <button class="badge-today" style="padding: 0 14px; border: 1px solid var(--border);" onclick="setSummaryToday()">วันนี้</button>
+            <button class="badge-today" onclick="setSummaryToday()">วันนี้</button>
           </div>
         </div>
 
@@ -752,8 +745,8 @@
   </div>
 
   <script>
-    // ดึงวันที่ปัจจุบันของเครื่อง
-    function getTodayString() {
+    // ดึงวันที่ปัจจุบันตามเวลาท้องถิ่นของเครื่อง (Local Time YYYY-MM-DD)
+    function getSystemTodayString() {
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -761,12 +754,16 @@
       return `${year}-${month}-${day}`;
     }
 
-    const todayDate = getTodayString();
+    // อัปเดตข้อความวันที่ภาษาไทยด้านบน
+    function refreshHeaderDate() {
+      const thaiDateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('todayDateLabel').innerText = new Date().toLocaleDateString('th-TH', thaiDateOptions);
+    }
 
-    // แสดงข้อความวันที่ไทยด้านบน
-    const thaiDateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('todayDateLabel').innerText = new Date().toLocaleDateString('th-TH', thaiDateOptions);
+    let todayDate = getSystemTodayString();
+    refreshHeaderDate();
 
+    // ตัวอย่างข้อมูลออเดอร์
     const defaultData = [
       {
         id: "OD-99356",
@@ -807,7 +804,7 @@
     let currentStatusFilter = 'all';
     let searchQuery = '';
 
-    // กำหนดวันที่เริ่มต้นให้กับช่องเลือกวันที่
+    // ตั้งค่าเริ่มต้นให้กับช่องเลือกวันที่ทั้งสองหน้า
     document.getElementById('datePicker').value = selectedDate;
     document.getElementById('summaryDatePicker').value = selectedDate;
 
@@ -940,8 +937,8 @@
     }
 
     function setSummaryToday() {
-      const today = getTodayString();
-      document.getElementById('summaryDatePicker').value = today;
+      const currentToday = getSystemTodayString();
+      document.getElementById('summaryDatePicker').value = currentToday;
       renderDashboardSummary();
     }
 
@@ -962,9 +959,9 @@
     }
 
     function setFilterToday() {
-      const today = getTodayString();
-      selectedDate = today;
-      document.getElementById('datePicker').value = today;
+      const currentToday = getSystemTodayString();
+      selectedDate = currentToday;
+      document.getElementById('datePicker').value = currentToday;
       renderOrders();
     }
 
@@ -1066,12 +1063,12 @@
 
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      const todayStr = getTodayString();
+      const currentToday = getSystemTodayString();
 
       if (editIdx === '') {
         const newOrder = {
           id: "OD-" + Math.floor(10000 + Math.random() * 90000),
-          date: todayStr,
+          date: currentToday,
           time: timeStr,
           customer: document.getElementById('custName').value.trim(),
           tel: document.getElementById('custTel').value.trim(),
