@@ -745,71 +745,81 @@
   </div>
 
   <script>
-    // ดึงวันที่ปัจจุบันตามเวลาท้องถิ่นของเครื่อง (Local Time YYYY-MM-DD)
+    // ดึงวันที่ปัจจุบันตามเวลาประเทศไทย (Asia/Bangkok) อย่างแม่นยำ
     function getSystemTodayString() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Bangkok',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
+      return parts; // ได้รูปแบบ YYYY-MM-DD แน่นอน
     }
 
-    // อัปเดตข้อความวันที่ภาษาไทยด้านบน
     function refreshHeaderDate() {
-      const thaiDateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const thaiDateOptions = { 
+        timeZone: 'Asia/Bangkok', 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      };
       document.getElementById('todayDateLabel').innerText = new Date().toLocaleDateString('th-TH', thaiDateOptions);
     }
 
     let todayDate = getSystemTodayString();
     refreshHeaderDate();
 
-    // ตัวอย่างข้อมูลออเดอร์
-    const defaultData = [
-      {
-        id: "OD-99356",
-        date: todayDate,
-        time: "04:17",
-        customer: "เฮียโอ(ศราม)",
-        tel: "0954321752",
-        address: "หมู่บ้านไดม่อนปาร์คกวิน",
-        items: [
-          { name: "แท่งหรรษา (x2)", price: 700, cost: 350 },
-          { name: "อาหารหมาบางแก้ว (x1)", price: 350, cost: 180 },
-          { name: "112 (x1)", price: 358, cost: 150 }
-        ],
-        shipping: 50,
-        status: "แพ็คแล้ว",
-        note: ""
-      },
-      {
-        id: "OD-12441",
-        date: todayDate,
-        time: "04:15",
-        customer: "ภูตะวัน",
-        tel: "0852273356",
-        address: "ผลิใบหมูใบเตย",
-        items: [
-          { name: "ใบหูกวางแห้งหมักน้ำใส (ถุง) (x1)", price: 40, cost: 15 },
-          { name: "ปลากัด Halfmoon Red Dragon (x1)", price: 350, cost: 150 },
-          { name: "อาหารปลากัด เกรดพรีเมียม (ซอง) (x1)", price: 60, cost: 25 }
-        ],
-        shipping: 90,
-        status: "ชำระแล้ว",
-        note: "ลูกค้าประจำ"
-      }
-    ];
+    // ดึงข้อมูลออเดอร์จาก LocalStorage ถ้าไม่มีให้สร้างรายการของวันนี้
+    let orders = JSON.parse(localStorage.getItem('shop_orders_data_v2'));
+    if (!orders || orders.length === 0) {
+      orders = [
+        {
+          id: "OD-99356",
+          date: todayDate,
+          time: "04:17",
+          customer: "เฮียโอ(ศราม)",
+          tel: "0954321752",
+          address: "หมู่บ้านไดม่อนปาร์คกวิน",
+          items: [
+            { name: "แท่งหรรษา (x2)", price: 700, cost: 350 },
+            { name: "อาหารหมาบางแก้ว (x1)", price: 350, cost: 180 },
+            { name: "112 (x1)", price: 358, cost: 150 }
+          ],
+          shipping: 50,
+          status: "แพ็คแล้ว",
+          note: ""
+        },
+        {
+          id: "OD-12441",
+          date: todayDate,
+          time: "04:15",
+          customer: "ภูตะวัน",
+          tel: "0852273356",
+          address: "ผลิใบหมูใบเตย",
+          items: [
+            { name: "ใบหูกวางแห้งหมักน้ำใส (ถุง) (x1)", price: 40, cost: 15 },
+            { name: "ปลากัด Halfmoon Red Dragon (x1)", price: 350, cost: 150 },
+            { name: "อาหารปลากัด เกรดพรีเมียม (ซอง) (x1)", price: 60, cost: 25 }
+          ],
+          shipping: 90,
+          status: "ชำระแล้ว",
+          note: "ลูกค้าประจำ"
+        }
+      ];
+      localStorage.setItem('shop_orders_data_v2', JSON.stringify(orders));
+    }
 
-    let orders = JSON.parse(localStorage.getItem('shop_orders_data')) || defaultData;
     let selectedDate = todayDate;
     let currentStatusFilter = 'all';
     let searchQuery = '';
 
-    // ตั้งค่าเริ่มต้นให้กับช่องเลือกวันที่ทั้งสองหน้า
-    document.getElementById('datePicker').value = selectedDate;
-    document.getElementById('summaryDatePicker').value = selectedDate;
+    // ตั้งค่าเริ่มต้นให้กับช่องเลือกวันที่
+    document.getElementById('datePicker').value = todayDate;
+    document.getElementById('summaryDatePicker').value = todayDate;
 
     function saveState() {
-      localStorage.setItem('shop_orders_data', JSON.stringify(orders));
+      localStorage.setItem('shop_orders_data_v2', JSON.stringify(orders));
       renderOrders();
       renderDashboardSummary();
     }
@@ -849,7 +859,7 @@
       document.getElementById('bannerCount').innerText = dateOrders.length;
 
       if (filtered.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding:30px; color:#94a3b8; font-size:0.85rem;">ไม่พบรายการออเดอร์</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:30px; color:#94a3b8; font-size:0.85rem;">ไม่พบรายการออเดอร์ของวันที่เลือก</div>`;
         return;
       }
 
@@ -1119,6 +1129,7 @@
       a.click();
     }
 
+    // เริ่มต้นแสดงผล
     renderOrders();
     renderDashboardSummary();
   </script>
